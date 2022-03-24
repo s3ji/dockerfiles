@@ -1,0 +1,58 @@
+version: '3'
+
+networks:
+  laravel:
+  app_shared:
+    external: true
+
+services:
+  site:
+    build:
+      context: ./dockerfiles
+      dockerfile: nginx.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: sample_nginx
+    ports:
+      - "8081:80"
+    volumes:
+      - ./src:/var/www/html:delegated
+    depends_on:
+      - php
+    networks:
+      - laravel
+
+  php:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    container_name: sample_php
+    ports:
+      - "9001:9000"
+    volumes:
+      - ./src:/var/www/html:delegated
+    networks:
+      - laravel
+      - app_shared
+
+  mysql:
+    image: mariadb:10.6
+    container_name: sample_mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: local
+      MYSQL_USER: local
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: secret
+    networks:
+      - laravel
+      - app_shared
